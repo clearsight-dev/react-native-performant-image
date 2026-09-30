@@ -2,7 +2,7 @@ import NetInfo from '@react-native-community/netinfo';
 
 import { createRetryScheduler, isOnline, type SchedulerConfig } from './retryScheduler';
 
-/** The one scheduler every PerformantImage in the app shares. */
+/** The one scheduler every Image in the app shares. */
 export const scheduler = createRetryScheduler({
   subscribe: (listener) => NetInfo.addEventListener((state) => listener(isOnline(state))),
 });

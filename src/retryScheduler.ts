@@ -1,5 +1,5 @@
 /**
- * The retry engine behind every PerformantImage, shared by all of them.
+ * The retry engine behind every Image, shared by all of them.
  *
  * Why one shared scheduler instead of per-image listeners: a product grid can
  * mount hundreds of images, and a NetInfo listener per image means hundreds of

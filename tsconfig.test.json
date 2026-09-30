@@ -7,6 +7,6 @@
     "sourceMap": false,
     "types": ["node"]
   },
-  "include": ["src/retryScheduler.ts", "src/shallowEqual.ts", "src/__tests__"],
+  "include": ["src"],
   "exclude": []
 }
