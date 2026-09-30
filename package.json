@@ -6,11 +6,11 @@
   "author": "Manas Luthra (https://github.com/mk843)",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/clearsight-dev/react-native-performant-image.git"
+    "url": "git+https://github.com/mk843/react-native-performant-image.git"
   },
-  "homepage": "https://github.com/clearsight-dev/react-native-performant-image#readme",
+  "homepage": "https://github.com/mk843/react-native-performant-image#readme",
   "bugs": {
-    "url": "https://github.com/clearsight-dev/react-native-performant-image/issues"
+    "url": "https://github.com/mk843/react-native-performant-image/issues"
   },
   "publishConfig": {
     "access": "public",
