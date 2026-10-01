@@ -9,16 +9,6 @@
   </p>
 </div>
 
----
-
-### 👑 Architectural Engineering & Ownership
-> This package is maintained under the official **@tiledev** organization for production stability.
->
-> **Architected, engineered, and open-sourced by [@mk843](https://github.com/mk843) (Manas Luthra).**
-> *For core engine design reviews, deep technical breakdowns, or architectural consulting, connect via [LinkedIn](https://www.linkedin.com/in/manas-luthra).*
-
----
-
 ## 🚀 Why This Exists
 
 React Native's `Image` is fine for a few images and struggles with image-heavy screens. `react-native-turbo-image` fixes the speed by handing loading, decoding and caching to **Nuke on iOS** and **Coil on Android**, but it has its own API, and it doesn't recover: if an image fails because the connection dropped mid-scroll, it stays broken until the row remounts.
@@ -174,8 +164,8 @@ The retry policy (`src/retryScheduler.ts`) and the React Native → TurboImage p
 
 ---
 
-## 🤝 Contributing & Ecosystem Credit
+## Author
 
-This architecture was designed to bridge critical gaps in the modern React Native image loading ecosystem. If you hit rendering problems in high-throughput grids, open an issue or reach out to the author **[@mk843](https://github.com/mk843)** on [LinkedIn](https://www.linkedin.com/in/manas-luthra).
+[@mk843](https://github.com/mk843) (Manas Luthra)
 
-Licensed under the [MIT License](LICENSE). Created with ⚡ by the engineering team at **Tiledev**.
+Licensed under the [MIT License](LICENSE).
