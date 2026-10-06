@@ -1,16 +1,20 @@
-import React, { memo, useCallback, useMemo } from 'react';
-import { Image as RNImage } from 'react-native';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Image as RNImage, Platform, StyleSheet, View } from 'react-native';
 import type { ImageErrorEvent, ImageLoadEvent, ImageProgressEventIOS, NativeSyntheticEvent } from 'react-native';
 import TurboImage from 'react-native-turbo-image';
-import type { Failure, Progress, Success } from 'react-native-turbo-image';
+import type { Failure, Progress, Success, TurboImageProps } from 'react-native-turbo-image';
 
+import { planPlaceholder } from './placeholder';
 import { arePropsEqual } from './shallowEqual';
 import { remoteSource, type RemoteSource } from './source';
 import { toTurboProps } from './toTurboProps';
 import type { ImageProps } from './types';
 import { useImageRetry, useLatest } from './useImageRetry';
 
-const EXTRAS = ['retryDelayMs', 'maxRetries', 'placeholder', 'transition'] as const;
+/** TurboImage's iOS fade-in when `fadeDuration` isn't given. */
+const IOS_DEFAULT_FADE_MS = 300;
+
+const EXTRAS = ['retryDelayMs', 'maxRetries', 'placeholder', 'blurhash', 'thumbhash', 'transition', 'resize'] as const;
 
 function ImageComponent(props: ImageProps) {
   const remote = remoteSource(props.source, props.src, props.srcSet);
@@ -79,22 +83,92 @@ function RemoteImage({ props, remote }: { props: ImageProps; remote: RemoteSourc
     [remote.uri, headersKey],
   );
 
+  const plan = planPlaceholder(
+    Platform.OS,
+    { memoryCacheKey: props.placeholder?.memoryCacheKey, blurhash: props.blurhash, thumbhash: props.thumbhash },
+    remote.uri,
+  );
+  const turbo = toTurboProps(props, plan.native);
+  // A new key remounts only this image, which makes the native view request it
+  // again. No other row in the list is touched.
+  const imageKey = `${remote.uri}-${retryKey}`;
+  const mainProps: TurboImageProps = {
+    ...turbo,
+    source,
+    onSuccess,
+    onFailure,
+    // Only ask the native side for events someone is listening to.
+    onStart: props.onLoadStart ? onStart : undefined,
+    onCompletion: props.onLoadEnd ? onCompletion : undefined,
+    onProgress: props.onProgress ? onProgress : undefined,
+  };
+
+  if (plan.underlayUri) {
+    return (
+      <UnderlaidImage
+        key={`${plan.underlayUri}|${imageKey}`}
+        underlayUri={plan.underlayUri}
+        imageKey={imageKey}
+        image={mainProps}
+        fadeMs={turbo.fadeDuration ?? IOS_DEFAULT_FADE_MS}
+      />
+    );
+  }
+  return <TurboImage {...mainProps} key={imageKey} />;
+}
+
+/**
+ * iOS, with `placeholder.memoryCacheKey`: the in-memory image is drawn behind the real one, with
+ * the same resizeMode (TurboImage would stretch it, see `planPlaceholder`). Both fill a view that
+ * takes the image's style; the placeholder goes once the image has faded in over it, so a
+ * transparent image never shows it through. Only these images carry the extra state and timer.
+ */
+function UnderlaidImage({
+  underlayUri,
+  imageKey,
+  image,
+  fadeMs,
+}: {
+  underlayUri: string;
+  imageKey: string;
+  image: TurboImageProps;
+  fadeMs: number;
+}) {
+  const [covered, setCovered] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  const { style, onLayout, pointerEvents, onSuccess, ...imageProps } = image;
+  const onImageSuccess = useCallback(
+    (e: NativeSyntheticEvent<Success>) => {
+      onSuccess?.(e);
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => setCovered(true), fadeMs);
+    },
+    [onSuccess, fadeMs],
+  );
+
   return (
-    <TurboImage
-      {...toTurboProps(props)}
-      // A new key remounts only this image, which makes the native view
-      // request it again. No other row in the list is touched.
-      key={`${remote.uri}-${retryKey}`}
-      source={source}
-      onSuccess={onSuccess}
-      onFailure={onFailure}
-      // Only ask the native side for events someone is listening to.
-      onStart={props.onLoadStart ? onStart : undefined}
-      onCompletion={props.onLoadEnd ? onCompletion : undefined}
-      onProgress={props.onProgress ? onProgress : undefined}
-    />
+    <View style={[style, styles.frame]} onLayout={onLayout} pointerEvents={pointerEvents}>
+      {!covered && (
+        <TurboImage
+          source={{ uri: underlayUri }}
+          style={StyleSheet.absoluteFill}
+          resizeMode={imageProps.resizeMode}
+          fadeDuration={0}
+          accessible={false}
+          importantForAccessibility="no-hide-descendants"
+        />
+      )}
+      <TurboImage {...imageProps} key={imageKey} style={StyleSheet.absoluteFill} onSuccess={onImageSuccess} />
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  // Clips both images to the style's corner radius, as the image alone would be.
+  frame: { overflow: 'hidden' },
+});
 
 const statics = {
   getSize: RNImage.getSize,

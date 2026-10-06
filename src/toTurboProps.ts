@@ -1,6 +1,7 @@
 import type { StyleProp, ViewStyle } from 'react-native';
 import type { ResizeMode, TurboImageProps } from 'react-native-turbo-image';
 
+import type { NativePlaceholder } from './placeholder';
 import type { ImageProps } from './types';
 
 /** React Native Image props this module translates into TurboImage ones. */
@@ -30,7 +31,10 @@ const TRANSLATED = [
   'retryDelayMs',
   'maxRetries',
   'placeholder',
+  'blurhash',
+  'thumbhash',
   'transition',
+  'resize',
 ] as const;
 
 /**
@@ -67,10 +71,11 @@ function toResizeMode(mode: ImageProps['resizeMode']): ResizeMode | undefined {
 
 /**
  * Translate React Native Image props into TurboImage props (everything but
- * the source and the events, which the component wires itself). Pure, so the
- * mapping is tested without a native runtime.
+ * the source and the events, which the component wires itself). The
+ * placeholder is passed in as `planPlaceholder` made it for this platform.
+ * Pure, so the mapping is tested without a native runtime.
  */
-export function toTurboProps(props: ImageProps): TurboStaticProps {
+export function toTurboProps(props: ImageProps, placeholder?: NativePlaceholder): TurboStaticProps {
   const passthrough: Record<string, unknown> = { ...props };
   for (const key of TRANSLATED) delete passthrough[key];
   for (const key of IGNORED_ON_NATIVE) delete passthrough[key];
@@ -104,8 +109,9 @@ export function toTurboProps(props: ImageProps): TurboStaticProps {
   set('tint', props.tintColor);
   set('fadeDuration', props.transition ?? props.fadeDuration);
   set('isProgressiveImageRenderingEnabled', props.progressiveRenderingEnabled);
-  if (props.placeholder) {
-    set('placeholder', props.placeholder);
+  set('resize', props.resize);
+  if (placeholder) {
+    set('placeholder', placeholder);
     set('showPlaceholderOnFailure', true);
   }
   // As React Native does: `alt` is the accessibility label, and makes the image accessible.

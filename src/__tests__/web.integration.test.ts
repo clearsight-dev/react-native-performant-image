@@ -185,15 +185,18 @@ describe('Image on web', () => {
     const uri = 'https://cdn.example/d.jpg';
     const { el, root } = mount({
       source: { uri },
-      placeholder: { blurhash: 'x' },
+      placeholder: { memoryCacheKey: 'https://cdn.example/c.jpg' },
+      blurhash: 'x',
+      thumbhash: 'y',
       transition: 200,
+      resize: 680,
       retryDelayMs: 50,
       maxRetries: 1,
       testID: 'product-image',
     });
     await waitFor(() => requested.length === 1);
     const html = el.innerHTML.toLowerCase();
-    for (const attr of ['placeholder', 'transition', 'retrydelay', 'maxretries', 'blurhash']) {
+    for (const attr of ['placeholder', 'transition', 'resize', 'retrydelay', 'maxretries', 'blurhash', 'thumbhash', 'memorycachekey']) {
       assert.ok(!html.includes(attr), `${attr} leaked into the DOM`);
     }
     assert.ok(el.innerHTML.includes('data-testid="product-image"'));

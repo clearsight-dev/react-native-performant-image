@@ -63,7 +63,7 @@ export function ProductGrid({ products }) {
           source={{ uri: item.imageUrl }}
           style={styles.image}
           resizeMode="cover"
-          placeholder={{ blurhash: item.blurhash }}
+          blurhash={item.blurhash}
         />
       )}
     />
@@ -81,8 +81,27 @@ const styles = StyleSheet.create({
 | :--- | :--- | :--- | :--- |
 | `retryDelayMs` | `number` | `300` | Base retry delay: the backoff unit while online, and the wait before the first retry after reconnecting. |
 | `maxRetries` | `number` | `2` | Retries while online before the image waits for a reconnect instead. |
-| `placeholder` | `{ blurhash?: string; thumbhash?: string }` | — | Shown while the image loads, and kept if it fails. Like expo-image's `placeholder`. Native only. |
+| `placeholder` | `{ memoryCacheKey: string }` | — | An image already decoded in memory, by the URL it was loaded from: drawn at once while this one loads, and kept if it fails (see below). Like expo-image's `placeholder`. Native only. |
+| `blurhash` | `string` | — | Optional. Drawn while the image loads, and kept if it fails. With a `placeholder` too, Android falls back to it when the in-memory image is gone; iOS shows only the in-memory image. Native only. |
+| `thumbhash` | `string` | — | Optional. As `blurhash`, and it wins when both are given. Native only. |
 | `transition` | `number` | — | Fade-in duration in ms once loaded. Like React Native's `fadeDuration`, which is Android-only, but on iOS too. Native only. |
+| `resize` | `number` | — | Decode width in points, never upscaled. Android otherwise decodes at the view's size, which blurs an image that is then scaled up (pinch-zoom). Native only. |
+
+### From a thumbnail to a full image, with no blank frame
+
+A list loads a small image; the detail screen loads a bigger one. Pass the small one's URL as the big one's `memoryCacheKey` placeholder. If it is still in memory, it is drawn at once, whatever size it was decoded at, and the big image replaces it when it arrives:
+
+```tsx
+// List row
+<Image source={{ uri: thumbUrl }} style={styles.thumb} />
+
+// Detail screen
+<Image source={{ uri: fullUrl }} placeholder={{ memoryCacheKey: thumbUrl }} style={styles.hero} />
+```
+
+Nothing is drawn if it was evicted, so keep a background colour behind it.
+
+The small image is drawn with the big one's `resizeMode`, so a photo of another shape than the view is cropped (or letterboxed) the same way, never stretched. Android hands it to Coil as the placeholder. On iOS it is drawn as a second image behind the real one, which goes once the real one has faded in: TurboImage's own iOS placeholder keeps UIKit's stretch-to-fill (NukeUI gives it an image view of its own, and TurboImage only sets that view's content mode when `resizeMode` itself changes), which squashed a tall product shot in a square gallery until the real image arrived. `blurhash` and `thumbhash` go to TurboImage on both platforms, so on iOS a thumbhash of another shape than the view is still stretched.
 
 ### Extra static methods
 
@@ -129,7 +148,7 @@ Bundled `require()` assets, `file://` and `data:` URIs render through React Nati
 
 Almost every prop passes straight through, since react-native-web's `Image` takes React Native's props. `src` and `srcSet` are turned into `source`, which is all react-native-web reads, and `onLoad` gets React Native's `{ nativeEvent: { source: { width, height, uri } } }` shape rather than the DOM event.
 
-**Ignored on web:** `placeholder` and `transition` (the extras), and `source.headers`: a plain browser image request can't carry headers, so a private image on web needs a URL that works without them (a signed URL, or a cookie on the same site).
+**Ignored on web:** `placeholder`, `blurhash`, `thumbhash`, `transition` and `resize` (the extras), and `source.headers`: a plain browser image request can't carry headers, so a private image on web needs a URL that works without them (a signed URL, or a cookie on the same site).
 
 **Setup:** Expo and Metro pick up `.web` files for web builds with no configuration. For a custom webpack setup, use the standard react-native-web configuration:
 

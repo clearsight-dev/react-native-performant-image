@@ -4,8 +4,8 @@ import { describe, it } from 'node:test';
 import { IGNORED_ON_NATIVE, toTurboProps } from '../toTurboProps';
 import type { ImageProps } from '../types';
 
-const map = (props: Partial<ImageProps>) =>
-  toTurboProps({ source: { uri: 'https://cdn/a.jpg' }, ...props } as ImageProps) as Record<string, unknown>;
+const map = (props: Partial<ImageProps>, placeholder?: Parameters<typeof toTurboProps>[1]) =>
+  toTurboProps({ source: { uri: 'https://cdn/a.jpg' }, ...props } as ImageProps, placeholder) as Record<string, unknown>;
 
 describe('toTurboProps', () => {
   it('renames React Native props to their TurboImage equivalents', () => {
@@ -36,10 +36,20 @@ describe('toTurboProps', () => {
     assert.equal(map({ style }).style, style);
   });
 
-  it('shows the placeholder, and keeps it on failure', () => {
-    const out = map({ placeholder: { blurhash: 'LEHV6n' } });
-    assert.deepEqual(out.placeholder, { blurhash: 'LEHV6n' });
+  it('shows the planned placeholder, and keeps it on failure', () => {
+    const out = map({}, { memoryCacheKey: 'https://cdn/a_660x.jpg', blurhash: 'LEHV6n' });
+    assert.deepEqual(out.placeholder, { memoryCacheKey: 'https://cdn/a_660x.jpg', blurhash: 'LEHV6n' });
     assert.equal(out.showPlaceholderOnFailure, true);
+  });
+
+  it('never passes the placeholder props themselves: only the plan', () => {
+    const out = map({ placeholder: { memoryCacheKey: 'https://cdn/a_660x.jpg' }, blurhash: 'x', thumbhash: 'y' });
+    for (const key of ['placeholder', 'blurhash', 'thumbhash', 'showPlaceholderOnFailure']) assert.ok(!(key in out), key);
+  });
+
+  it('passes the decode width, and nothing when unset', () => {
+    assert.equal(map({ resize: 680 }).resize, 680);
+    assert.ok(!('resize' in map({})));
   });
 
   it('uses alt as the accessibility label, as React Native does', () => {

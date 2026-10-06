@@ -15,15 +15,18 @@ import { useImageRetry, useLatest } from './useImageRetry';
  * (Expo, Metro, and react-native-web webpack setups all do), so
  * react-native-turbo-image and NetInfo are never loaded in the browser.
  *
- * The extras (`placeholder`, `transition`) have no web equivalent and are
- * ignored here, as are `source.headers`: a plain browser image request can't
+ * The extras (`placeholder`, `blurhash`, `thumbhash`, `transition`, `resize`)
+ * have no web equivalent and are ignored here, as are `source.headers`: a plain browser image request can't
  * carry headers.
  */
 function ImageComponent({
   retryDelayMs = 300,
   maxRetries = 2,
   placeholder: _placeholder,
+  blurhash: _blurhash,
+  thumbhash: _thumbhash,
   transition: _transition,
+  resize: _resize,
   onLoad,
   onError,
   onLoadStart,
