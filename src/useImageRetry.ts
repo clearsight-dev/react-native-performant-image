@@ -9,6 +9,13 @@ export function useLatest<T>(value: T) {
   return ref;
 }
 
+/** The value before the last change; undefined until it first changes. */
+export function usePrevious<T>(value: T): T | undefined {
+  const ref = useRef<{ latest: T; previous: T | undefined }>({ latest: value, previous: undefined });
+  if (ref.current.latest !== value) ref.current = { latest: value, previous: ref.current.latest };
+  return ref.current.previous;
+}
+
 interface Options {
   uri: string;
   retryDelayMs: number;
@@ -18,10 +25,12 @@ interface Options {
 /**
  * The retry wiring both platforms share. `retryKey` goes into the image's
  * `key`: bumping it remounts just that image, which makes it load again.
- * Both reporters keep one identity for the image's lifetime.
+ * `failed` is true once the current `uri` has failed. Both reporters keep one
+ * identity while the `uri` stays the same.
  */
 export function useImageRetry({ uri, retryDelayMs, maxRetries }: Options) {
   const [retryKey, setRetryKey] = useState(0);
+  const [failedUri, setFailedUri] = useState<string | undefined>(undefined);
 
   // One scheduler entry per image URL. Keying the owner on `uri` means a
   // late failure from the previous URL can never cancel or retry the new one.
@@ -31,6 +40,7 @@ export function useImageRetry({ uri, retryDelayMs, maxRetries }: Options) {
   const options = useLatest({ retryDelayMs, maxRetries });
 
   const reportFailure = useCallback(() => {
+    setFailedUri(owner.uri);
     scheduler.reportFailure(owner, {
       ...options.current,
       onRetry: () => setRetryKey((k) => k + 1),
@@ -39,5 +49,5 @@ export function useImageRetry({ uri, retryDelayMs, maxRetries }: Options) {
 
   const reportSuccess = useCallback(() => scheduler.reportSuccess(owner), [owner]);
 
-  return { retryKey, reportFailure, reportSuccess };
+  return { retryKey, failed: failedUri === uri, reportFailure, reportSuccess };
 }

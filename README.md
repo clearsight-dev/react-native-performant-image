@@ -26,12 +26,12 @@ Every existing `<Image>` keeps working: same props, same events, same static met
 
 - **Same API as React Native.** `source`, `src`, `srcSet`, `style`, `resizeMode`, `onLoad`, `onError`, `onLoadStart`, `onLoadEnd`, `onProgress`, `blurRadius`, `tintColor`, `alt`, `Image.getSize`, `Image.prefetch`, and the rest. Events keep React Native's shapes.
 - **Native engines for remote images.** `http(s)` images load through TurboImage (Nuke / Coil). Bundled `require()` assets, `file://` and `data:` URIs go to React Native's own `Image`, which already handles them well and has nothing to retry.
-- **Healthy images cost nothing.** An image that loads registers no listener, no timer and no state. All the machinery below exists only for images that failed.
+- **Healthy images cost nothing.** An image that loads registers no listener, no timer and no state. On iOS it doesn't even send a load event unless you pass `onLoad`. All the machinery below exists only for images that failed.
 - **One network listener for the whole app.** Failed images share a single NetInfo subscription, created when the first image fails and removed when the last one recovers. A grid of 500 images never means 500 listeners.
 - **Online failures retry with backoff.** A failure while the device is online (a timeout, a flaky CDN) retries after `retryDelayMs`, then 2×, 4×… with random jitter, up to `maxRetries`.
 - **Offline failures wait for the network.** A failure while offline, or one that has used up its retries, waits. When the connection comes back, waiting images retry oldest first, spaced `staggerMs` apart, so a screen of broken images reloads as a quick ripple rather than one burst of requests.
 - **Only the failed image reloads.** Its key changes, so that one native view remounts. Nothing else in the list re-renders.
-- **No leaks on fast scrolling.** Unmounting an image, or changing its source, cancels its pending retry immediately.
+- **No leaks on fast scrolling.** Unmounting an image, or changing its source, cancels its pending retry immediately. A new source (a recycled list row) loads in the same native view, which cancels the load it had running, so no load finishes after its view is gone.
 - **Cheap re-renders.** The component is memoized with a comparison that treats a fresh-but-identical inline `source` (headers included), `style` or `placeholder` as unchanged, and the handlers it passes down keep a stable identity.
 
 ## 📦 Installation
@@ -111,6 +111,14 @@ The small image is drawn with the big one's `resizeMode`, so a photo of another 
 | `Image.clearDiskCache()` | Drop the on-disk image cache (as in expo-image). No-op on web. |
 
 `Image.prefetch(url)` warms the cache this component actually reads (Nuke / Coil) rather than React Native's. The other statics (`getSize`, `getSizeWithHeaders`, `resolveAssetSource`, `queryCache`, `abortPrefetch`) are React Native's own.
+
+### A list kept on the device: `usePrefetchImages` (0.3.0)
+
+```tsx
+usePrefetchImages(photoUrls); // a new array only when the list changes
+```
+
+Sends each photo of a list to that cache as soon as the list has it, scrolled to or not, so a list stored on the phone (favourites, a waitlist) draws its photos offline too. Once per URL per launch; one that fails is tried again by the next list that has it. `prefetchOnce(urls, prefetch)` is the same rule without React.
 
 ### App-wide tuning
 

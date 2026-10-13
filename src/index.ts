@@ -4,3 +4,5 @@ export { Image } from './Image';
 export type { ImageProps, ImagePlaceholder } from './types';
 export { configurePerformantImage } from './scheduler';
 export type { SchedulerConfig } from './retryScheduler';
+export { usePrefetchImages } from './usePrefetchImages';
+export { prefetchOnce } from './prefetchOnce';
