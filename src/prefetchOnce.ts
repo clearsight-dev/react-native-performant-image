@@ -16,16 +16,20 @@ export function prefetchOnce(
   for (const url of urls) {
     if (!url || prefetched.has(url)) continue;
     prefetched.add(url);
-    let started: Promise<boolean>;
+    let started: unknown;
     try {
       started = prefetch(url);
     } catch {
       prefetched.delete(url);
       continue;
     }
-    started
+    // `prefetch` may hand back a non-Promise (a native prefetch that returns
+    // void): `Promise.resolve` adopts a thenable and wraps anything else, where
+    // `started.then(...)` on a bare value would throw, uncaught. Only an
+    // explicit `false` or a rejection forgets the URL, so a void return is kept.
+    Promise.resolve(started)
       .then((ok) => {
-        if (!ok) prefetched.delete(url);
+        if (ok === false) prefetched.delete(url);
       })
       .catch(() => prefetched.delete(url));
   }

@@ -101,7 +101,11 @@ const statics = {
   resolveAssetSource: RNImage.resolveAssetSource,
   queryCache: RNImage.queryCache,
   abortPrefetch: RNImage.abortPrefetch,
-  prefetch: (url: string): Promise<boolean> => RNImage.prefetch(url),
+  // One URL or a whole list, to match native; the browser prefetches each.
+  prefetch: (urls: string | readonly string[]): Promise<boolean> =>
+    Promise.all((typeof urls === 'string' ? [urls] : urls).map((u) => RNImage.prefetch(u))).then(
+      (results) => results.every(Boolean),
+    ),
   /** The browser owns its image caches; kept so shared code runs on web. */
   clearMemoryCache: (): Promise<void> => resolved(undefined),
   /** The browser owns its image caches; kept so shared code runs on web. */

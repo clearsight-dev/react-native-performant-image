@@ -198,8 +198,15 @@ const statics = {
   resolveAssetSource: RNImage.resolveAssetSource,
   queryCache: RNImage.queryCache,
   abortPrefetch: RNImage.abortPrefetch,
-  /** Warms the cache this component reads (Nuke / Coil), not React Native's. */
-  prefetch: (url: string): Promise<boolean> => TurboImage.prefetch([{ uri: url }]),
+  /**
+   * Warms the cache this component reads (Nuke / Coil), not React Native's. Takes
+   * one URL or a whole list — pass the list so turbo-image builds ONE prefetcher
+   * for it, not one per URL (a burst of prefetch calls races on turbo-image's
+   * unlocked prefetcher dictionary across two queues and crashes the app; see
+   * `warmOnce`).
+   */
+  prefetch: (urls: string | readonly string[]): Promise<boolean> =>
+    TurboImage.prefetch((typeof urls === 'string' ? [urls] : urls).map((uri) => ({ uri }))),
   /** expo-image style: drop decoded images from memory. */
   clearMemoryCache: (): Promise<void> => TurboImage.clearMemoryCache(),
   /** expo-image style: drop the on-disk cache. */
