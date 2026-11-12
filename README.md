@@ -110,7 +110,7 @@ The small image is drawn with the big one's `resizeMode`, so a photo of another 
 | `Image.clearMemoryCache()` | Drop decoded images from memory (as in expo-image). No-op on web. |
 | `Image.clearDiskCache()` | Drop the on-disk image cache (as in expo-image). No-op on web. |
 
-`Image.prefetch(url)` warms the cache this component actually reads (Nuke / Coil) rather than React Native's. The other statics (`getSize`, `getSizeWithHeaders`, `resolveAssetSource`, `queryCache`, `abortPrefetch`) are React Native's own.
+`Image.prefetch(url)` warms the cache this component actually reads (Nuke / Coil) rather than React Native's. It also takes a list. Calls made together are merged, and the native prefetcher gets one request at a time (0.3.2), so prefetching photo by photo is safe: react-native-turbo-image 1.24.3 crashes on iOS when its prefetches overlap. A request with no answer after 10 s counts as done. The other statics (`getSize`, `getSizeWithHeaders`, `resolveAssetSource`, `queryCache`, `abortPrefetch`) are React Native's own.
 
 ### A list kept on the device: `usePrefetchImages` (0.3.0)
 

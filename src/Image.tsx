@@ -6,11 +6,15 @@ import type { Failure, Progress, Success, TurboImageProps } from 'react-native-t
 
 import { isFromPreviousSource, needsSuccessEvent } from './events';
 import { planPlaceholder } from './placeholder';
+import { createPrefetchQueue } from './prefetchQueue';
 import { arePropsEqual } from './shallowEqual';
 import { remoteSource, type RemoteSource } from './source';
 import { toTurboProps } from './toTurboProps';
 import type { ImageProps } from './types';
 import { useImageRetry, useLatest, usePrevious } from './useImageRetry';
+
+/** The app's one prefetch queue: every `Image.prefetch` reaches turbo-image through it, one at a time. */
+const prefetchQueue = createPrefetchQueue((urls) => TurboImage.prefetch(urls.map((uri) => ({ uri }))));
 
 /** TurboImage's iOS fade-in when `fadeDuration` isn't given. */
 const IOS_DEFAULT_FADE_MS = 300;
@@ -200,13 +204,13 @@ const statics = {
   abortPrefetch: RNImage.abortPrefetch,
   /**
    * Warms the cache this component reads (Nuke / Coil), not React Native's. Takes
-   * one URL or a whole list — pass the list so turbo-image builds ONE prefetcher
-   * for it, not one per URL (a burst of prefetch calls races on turbo-image's
-   * unlocked prefetcher dictionary across two queues and crashes the app; see
-   * `warmOnce`).
+   * one URL or a whole list. Every call goes through `prefetchQueue` (0.3.2):
+   * calls made together are merged, and turbo-image gets one prefetch at a time,
+   * so an app that prefetches photo by photo no longer races turbo-image's
+   * unlocked prefetcher dictionary (see `prefetchQueue`).
    */
   prefetch: (urls: string | readonly string[]): Promise<boolean> =>
-    TurboImage.prefetch((typeof urls === 'string' ? [urls] : urls).map((uri) => ({ uri }))),
+    prefetchQueue.prefetch(typeof urls === 'string' ? [urls] : urls),
   /** expo-image style: drop decoded images from memory. */
   clearMemoryCache: (): Promise<void> => TurboImage.clearMemoryCache(),
   /** expo-image style: drop the on-disk cache. */
